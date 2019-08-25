@@ -226,6 +226,14 @@ class TodoLine:
         d['text'] = self.text
         return d
 
+    @staticmethod
+    def is_empty_task(line):
+        if line == "":
+            return True
+        if re.match("#", line) is not None:
+            return True
+        return False
+
 
 if __name__ == "__main__":
     import doctest
