@@ -25,7 +25,27 @@ class Main:
     @pynvim.command("TodomeSort", nargs='*', range='')
     def todome_sort(self, args, range):
         buf = self.nvim.current.buffer
-        l_task_lines = buf.api.get_lines(0, -1, False)
+        l_lines = buf.api.get_lines(0, -1, False)
+        l_task_lines = Main.remove_empty_tasks(l_lines)
         tdf = TodoDataFrame('\n'.join(l_task_lines))
         tdf.sort(by=args)
         buf.api.set_lines(0, -1, False, tdf.to_list())
+
+    @pynvim.command("TodomeFilter", nargs='*')
+    def todome_filter(self, args):
+        buf = self.nvim.current.buffer
+        l_lines = buf.api.get_lines(0, -1, False)
+        l_task_lines = Main.remove_empty_tasks(l_lines)
+        tdf = TodoDataFrame('\n'.join(l_task_lines))
+        df_pos, df_neg = tdf.filter(by=args)
+        todo_list = ["# === Matched tasks === (condition: {})".format(args)]
+        todo_list.extend(list(df_pos["line"]))
+        todo_list.append("")
+        todo_list.append("# === Unmatched tasks ===")
+        todo_list.extend(list(df_neg["line"]))
+        buf.api.set_lines(0, -1, False, todo_list)
+        pass
+
+    @staticmethod
+    def remove_empty_tasks(l_lines: list):
+        return [line for line in l_lines if not TodoLine.is_empty_task(line)]
