@@ -212,6 +212,20 @@ class TodoLine:
             d[grp[1]] = grp[2]
         return d
 
+    def to_dict(self):
+        d = {}
+        d['line'] = self.line
+        d['done'] = self.done
+        d['priority'] = self.priority
+        d['due_date'] = self.due_date
+        d['add_date'] = self.add_date
+        d['done_date'] = self.done_date
+        d['projects'] = self.projects
+        d['contexts'] = self.contexts
+        d['metadata'] = self.metadata
+        d['text'] = self.text
+        return d
+
 
 if __name__ == "__main__":
     import doctest
