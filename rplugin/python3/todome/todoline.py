@@ -153,6 +153,11 @@ class TodoLine:
         --------
         >>> TodoLine._extract_add_date("(A) 1978-06-25 hogehoge", False)
         '1978-06-25'
+        >>> TodoLine._extract_add_date("x (A) <2019-08-26> 優先度省略 +プロジェクトX @phone", True)
+        >>> TodoLine._extract_add_date("x 2019-08-23 (A) <2019-08-26> 優先度省略 +プロジェクトX @phone", True)
+        >>> TodoLine._extract_add_date("x (A) 2019-08-23 <2019-08-26> 優先度省略 +プロジェクトX @phone", True)
+        '2019-08-23'
+
         """
         if not is_done:
             mch = re.match(r"^(\([A-Z]\)\s+)?(\d{4}-\d{2}-\d{2})\s+", line)
@@ -162,12 +167,12 @@ class TodoLine:
 
         # 完了済みの場合
         mch = re.match(
-            r"^(x\s+(\d{4}-\d{2}-\d{2}\s+)?)?(\([A-Z]\)\s+)?(\d{4}-\d{2}-\d{2})?\s+",
+            r"^(x\s+(\d{4}-\d{2}-\d{2}\s+)?)?(\([A-Z]\)\s+)?((\d{4}-\d{2}-\d{2})\s+)?",
             line)
         if mch is None:
             return None
         grp = mch.groups()
-        return grp[3]
+        return grp[4]
 
     @staticmethod
     def _extract_done_date(line, is_done):
@@ -240,10 +245,15 @@ class TodoLine:
         --------
         >>> TodoLine._extract_text("(A) 1978-06-25 hogehoge")
         'hogehoge'
+        >>> TodoLine._extract_text("x 2019-08-23 <2019-08-26> 優先度省略 +プロジェクトX @phone")
+        '優先度省略'
         """
 
         to_delete = [
-            r"^(x\s+(\d{4}-\d{2}-\d{2})?)?\(([A-Z])\)",
+            r"^x\s+(\d{4}-\d{2}-\d{2})\s+",
+            r"^x\s+",
+            r"^\(([A-Z])\)\s+",
+            r"(\s|^)(\S+):(\S+)(\s|$)",
             r"<\d{4}-\d{2}-\d{2}>",
             r"\d{4}-\d{2}-\d{2}",
             r"\+\S+",
