@@ -1,4 +1,5 @@
 import pynvim
+import datetime as dt
 
 from .todoline import TodoLine
 from .todo_dataframe import TodoDataFrame
@@ -68,3 +69,16 @@ class Main:
         #     l_after_lines.append(td.pretty_line())
         # buf.api.set_lines(range[0], range[1], False, l_after_lines)
 
+    @pynvim.function("TodomeToggleDone")
+    def toggle_done(self, args):
+        buf = self.nvim.current.buffer
+        _, l, _, _ = self.nvim.call('getpos', '.')
+        line = buf.api.get_lines(l - 1, l, False)
+        td = TodoLine(line[0])
+        if td.done:
+            td.done = False
+            td.done_date = None
+        else:
+            td.done = True
+            td.done_date = dt.date.today().strftime("%Y-%m-%d")
+        buf.api.set_lines(l - 1, l, False, [td.pretty_line()])
