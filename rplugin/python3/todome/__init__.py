@@ -1,7 +1,7 @@
 import pynvim
 
-from todome.todoline import TodoLine
-from todome.todo_dataframe import TodoDataFrame
+from .todoline import TodoLine
+from .todo_dataframe import TodoDataFrame
 
 
 @pynvim.plugin
@@ -49,3 +49,22 @@ class Main:
     @staticmethod
     def remove_empty_tasks(l_lines: list):
         return [line for line in l_lines if not TodoLine.is_empty_task(line)]
+
+    @pynvim.function("TodomeAddPriority")
+    def add_priority(self, args):
+        buf = self.nvim.current.buffer
+        _, l, _, _ = self.nvim.call('getpos', '.')
+        line = buf.api.get_lines(l - 1, l, False)
+        td = TodoLine(line[0])
+        td.priority = args[0]
+        buf.api.set_lines(l - 1, l, False, [td.pretty_line()])
+
+        # # if visual mode
+        # l_lines = buf.api.get_lines(range[0], range[1], False)
+        # l_after_lines = []
+        # for line in l_lines:
+        #     td = TodoLine(line)
+        #     td.priority = priprity
+        #     l_after_lines.append(td.pretty_line())
+        # buf.api.set_lines(range[0], range[1], False, l_after_lines)
+

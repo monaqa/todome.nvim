@@ -2,6 +2,44 @@ import re
 
 
 class TodoLine:
+    """
+    タスク1行を表すオブジェクト．
+    todo.txt の仕様に概ね沿っている．
+
+    Attributes
+    ----------
+
+    line: str
+        タスク本文．
+    done: bool
+        タスクが完了したか否か．
+    priority: str or None
+        優先度．'A'-'Z' の26種類のみで，'A' から順に優先度が下がる．
+    due_date: str or None
+        ※ 今後型が datetime 型に変更になる可能性あり
+        期限日．
+    done_date: str or None
+        ※ 今後型が datetime 型に変更になる可能性あり
+        タスクの追加日．
+    done_date: str or None
+        ※ 今後型が datetime 型に変更になる可能性あり
+        タスクの完了日．
+    projects: list of str
+        タスクが要素として持つプロジェクト．
+        line 中に `+project1` と記述があれば，
+        'project1' という文字列が projects 内に入ることになる．
+    contexts: list of str
+        タスクが要素として持つ文脈．
+        line 中に `@phone` と記述があれば，
+        'phone' という文字列が contexts 内に入ることになる．
+    metadata: dict (key: str, value: str)
+        タスク中に含まれるメタ情報．
+        `key:value` の形で line 中に含まれる情報を格納する．
+    text: str
+        上記の属性以外に書かれているすべての情報．
+
+    """
+
     def __init__(self, line: str):
         self.line = line
         self.done = TodoLine._extract_done(line)
@@ -15,6 +53,11 @@ class TodoLine:
         self.text = TodoLine._extract_text(line)
 
     def pretty_line(self) -> str:
+        """
+        現在の attributes に格納されている情報をもとに，
+        統一された形式の line を返す．
+        なお，self.line 自体は変更しない．
+        """
         l_text = []
 
         if self.done:
@@ -35,6 +78,24 @@ class TodoLine:
         l_text.extend(["{}:{}".format(k, v) for k, v in self.metadata.items()])
 
         return " ".join(l_text)
+
+    def to_dict(self):
+        """
+        属性を dict 形式に格納して返す．
+        DataFrame を作成する場合に有用．
+        """
+        d = {}
+        d['line'] = self.line
+        d['done'] = self.done
+        d['priority'] = self.priority
+        d['due_date'] = self.due_date
+        d['add_date'] = self.add_date
+        d['done_date'] = self.done_date
+        d['projects'] = self.projects
+        d['contexts'] = self.contexts
+        d['metadata'] = self.metadata
+        d['text'] = self.text
+        return d
 
     @staticmethod
     def _extract_done(line):
@@ -92,6 +153,11 @@ class TodoLine:
         --------
         >>> TodoLine._extract_add_date("(A) 1978-06-25 hogehoge", False)
         '1978-06-25'
+        >>> TodoLine._extract_add_date("x (A) <2019-08-26> 優先度省略 +プロジェクトX @phone", True)
+        >>> TodoLine._extract_add_date("x 2019-08-23 (A) <2019-08-26> 優先度省略 +プロジェクトX @phone", True)
+        >>> TodoLine._extract_add_date("x (A) 2019-08-23 <2019-08-26> 優先度省略 +プロジェクトX @phone", True)
+        '2019-08-23'
+
         """
         if not is_done:
             mch = re.match(r"^(\([A-Z]\)\s+)?(\d{4}-\d{2}-\d{2})\s+", line)
@@ -101,12 +167,12 @@ class TodoLine:
 
         # 完了済みの場合
         mch = re.match(
-            r"^(x\s+(\d{4}-\d{2}-\d{2}\s+)?)?(\([A-Z]\)\s+)?(\d{4}-\d{2}-\d{2})?\s+",
+            r"^(x\s+(\d{4}-\d{2}-\d{2}\s+)?)?(\([A-Z]\)\s+)?((\d{4}-\d{2}-\d{2})\s+)?",
             line)
         if mch is None:
             return None
         grp = mch.groups()
-        return grp[3]
+        return grp[4]
 
     @staticmethod
     def _extract_done_date(line, is_done):
@@ -179,10 +245,15 @@ class TodoLine:
         --------
         >>> TodoLine._extract_text("(A) 1978-06-25 hogehoge")
         'hogehoge'
+        >>> TodoLine._extract_text("x 2019-08-23 <2019-08-26> 優先度省略 +プロジェクトX @phone")
+        '優先度省略'
         """
 
         to_delete = [
-            r"^(x\s+(\d{4}-\d{2}-\d{2})?)?\(([A-Z])\)",
+            r"^x\s+(\d{4}-\d{2}-\d{2})\s+",
+            r"^x\s+",
+            r"^\(([A-Z])\)\s+",
+            r"(\s|^)(\S+):(\S+)(\s|$)",
             r"<\d{4}-\d{2}-\d{2}>",
             r"\d{4}-\d{2}-\d{2}",
             r"\+\S+",
@@ -212,22 +283,12 @@ class TodoLine:
             d[grp[1]] = grp[2]
         return d
 
-    def to_dict(self):
-        d = {}
-        d['line'] = self.line
-        d['done'] = self.done
-        d['priority'] = self.priority
-        d['due_date'] = self.due_date
-        d['add_date'] = self.add_date
-        d['done_date'] = self.done_date
-        d['projects'] = self.projects
-        d['contexts'] = self.contexts
-        d['metadata'] = self.metadata
-        d['text'] = self.text
-        return d
-
     @staticmethod
     def is_empty_task(line):
+        """
+        タスク本文を引数にとり，
+        それが空のタスク（空行 or コメント行）であるかどうかを判定する．
+        """
         if line == "":
             return True
         if re.match("#", line) is not None:
