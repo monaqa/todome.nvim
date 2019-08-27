@@ -203,8 +203,8 @@ class TodoLine:
         """
         l_groups = re.findall(r"(\s|^)\+(\S+)(?=\s|$)", line)
         if not l_groups:
-            return []
-        return [grp[1] for grp in l_groups]
+            return ()
+        return tuple([grp[1] for grp in l_groups])
 
     @staticmethod
     def _extract_contexts(line):
@@ -218,8 +218,8 @@ class TodoLine:
         """
         l_groups = re.findall(r"(\s|^)@(\S+)(?=\s|$)", line)
         if not l_groups:
-            return []
-        return [grp[1] for grp in l_groups]
+            return ()
+        return tuple([grp[1] for grp in l_groups])
 
     @staticmethod
     def _extract_due_date(line):

@@ -1,5 +1,5 @@
 from typing import List
-from todome.todoline import TodoLine
+from .todoline import TodoLine
 import pandas as pd
 import re
 
@@ -12,7 +12,15 @@ class TodoDataFrame:
         l_dict = [t.to_dict() for t in todolines]
         self.df = pd.DataFrame(l_dict)
 
-    def sort(self, by=None, ascending=True):
+    def sort(self, by=None):
+        params = []
+        ascending = []
+        for param in by:
+            mch = re.match(r"(r_)?(\S+)", param)
+            # r_ が先頭についていたら逆順にする
+            ascending.append((mch.groups()[0] is None))
+            params.append(mch.groups()[1])
+
         self.df.sort_values(
             by=by, ascending=ascending,
             inplace=True,
@@ -29,6 +37,24 @@ class TodoDataFrame:
             mch_leq = re.match(r"(\S+)\<\=(\S+)", cond)
             mch_geq = re.match(r"(\S+)\>\=(\S+)", cond)
             mch_neq = re.match(r"(\S+)\!\=(\S+)", cond)
+            mch_prj = re.match(r"\+(\S+)", cond)
+            mch_ctx = re.match(r"@(\S+)", cond)
+            mch_mtd = re.match(r"(\S+):(\S+)", cond)
+
+            if mch_prj is not None:
+                prj_name = mch_prj.groups()[0]
+                df_pos = df_pos & (
+                    self.df["projects"].apply(lambda x: prj_name in x))
+
+            if mch_ctx is not None:
+                ctx_name = mch_ctx.groups()[0]
+                df_pos = df_pos & (
+                    self.df["contexts"].apply(lambda x: ctx_name in x))
+
+            if mch_mtd is not None:
+                key, val = mch_mtd.groups()
+                df_pos = df_pos & (self.df["metadata"].apply(
+                    lambda x: key in x.keys() and x[key] == val))  # 短絡評価
 
             # 正規表現的に，leq が引っかかるものは eq や le も引っかかるので，
             # leq/geq/neq は先に済ませちゃう

@@ -39,7 +39,10 @@ class Main:
         l_task_lines = Main.remove_empty_tasks(l_lines)
         tdf = TodoDataFrame('\n'.join(l_task_lines))
         df_pos, df_neg = tdf.filter(by=args)
-        todo_list = ["# === Matched tasks === (condition: {})".format(args)]
+        todo_list = [(
+            "# === Matched tasks === (TodomeFilter {})"
+            .format(" ".join(args))
+        )]
         todo_list.extend(list(df_pos["line"]))
         todo_list.append("")
         todo_list.append("# === Unmatched tasks ===")
