@@ -3,10 +3,30 @@ import datetime as dt
 
 from .todoline import TodoLine
 from .todo_dataframe import TodoDataFrame
+import re
+
+
+NS_HIGHLIGHT_OVERDUE = 1
+
+LIST_AUTOCMD_PAT = [
+    r"[Tt]odo.txt",
+    r"[Tt]odo-\d\\\{4\}-\d\\\{2\}-\d\\\{2\}.txt",
+    r"[Tt]odo-\d\\\{4\}-\d\\\{2\}.txt",
+    r"\d\\\{4\}-\d\\\{2\}-\d\\\{2\}-[Tt]odo.txt",
+    r"\d\\\{4\}-\d\\\{2\}-[Tt]odo.txt",
+    r"[Tt]oday.txt",
+    r"[Dd]one.txt",
+    r"[Dd]one-\d\\\{4\}-\d\\\{2\}-\d\\\{2\}.txt",
+    r"[Dd]one-\d\\\{4\}-\d\\\{2\}.txt",
+    r"\d\\\{4\}-\d\\\{2\}-\d\\\{2\}-[Dd]one.txt",
+    r"\d\\\{4\}-\d\\\{2\}-[Dd]one.txt",
+    r"[Dd]one-[Tt]oday.txt",
+]
 
 
 @pynvim.plugin
 class Main:
+
     def __init__(self, nvim: pynvim.Nvim):
         self.nvim = nvim
 
@@ -85,3 +105,36 @@ class Main:
             td.done = True
             td.done_date = dt.date.today().strftime("%Y-%m-%d")
         buf.api.set_lines(l - 1, l, False, [td.pretty_line()])
+
+    @pynvim.autocmd("BufReadPost,TextChanged,TextChangedI,TextChangedP",
+                    pattern=",".join(LIST_AUTOCMD_PAT[0:1]), sync=False,
+                    allow_nested=True,
+                    )
+    def highlight_overdue(self, ):
+        buf = self.nvim.current.buffer
+        l_lines = buf.api.get_lines(0, -1, False)
+        buf.api.clear_highlight(NS_HIGHLIGHT_OVERDUE, 0, -1)
+
+        for row, line in enumerate(l_lines):
+            mch_done = re.match(r"^x\s+", line)
+            if mch_done is not None:
+                continue
+            mch_over = re.search(r"<(\d{4}-\d{2}-\d{2})>", line)
+            if mch_over is None:
+                continue
+
+            try:
+                due_date = dt.datetime.strptime(
+                    mch_over.groups()[0], "%Y-%m-%d").date()
+            except ValueError:
+                continue
+            if due_date > dt.date.today():
+                continue
+            if due_date == dt.date.today():
+                buf.api.add_highlight(
+                    NS_HIGHLIGHT_OVERDUE, "TodomeDueToday",
+                    row, mch_over.start(), mch_over.end())
+                continue
+            buf.api.add_highlight(
+                NS_HIGHLIGHT_OVERDUE, "TodomeOverdue",
+                row, mch_over.start(), mch_over.end())
