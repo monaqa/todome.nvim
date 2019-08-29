@@ -4,8 +4,8 @@ set cpo&vim
 
 set nrformats=alpha
 
-highlight link TodomeOverdue Error
-highlight link TodomeDueToday Underlined
+highlight default link TodomeOverdue Error
+highlight default link TodomeDueToday IncSearch
 
 
 " Folding {{{1

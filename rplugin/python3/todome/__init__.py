@@ -134,6 +134,7 @@ class Main:
                 buf.api.add_highlight(
                     NS_HIGHLIGHT_OVERDUE, "TodomeDueToday",
                     row, mch_over.start(), mch_over.end())
+                continue
             buf.api.add_highlight(
                 NS_HIGHLIGHT_OVERDUE, "TodomeOverdue",
                 row, mch_over.start(), mch_over.end())
